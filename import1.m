@@ -18,7 +18,7 @@ else
     [indx,tf] = listdlg('ListString', allSheets, 'SelectionMode', 'single');
     if tf == 0
         disp('User selected Cancel')
-        
+
     else
         disp(['User selected ', allSheets{indx}])
         sheet = allSheets{indx};
@@ -34,7 +34,7 @@ end
 
 data = data(9:29,:);
 
-start_date = '07-Aug-2019' ;
+start_date = '10-Jan-2019' ;
 
 end_date = '20-Jun-2023' ;
 
@@ -420,19 +420,35 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
     figure; % Create a figure for energy values greater than 160
     legendHandles2 = gobjects(0);
     legendNames2 = cell(0);
+    
+    col_start = col_start - 1; 
 
     for mev_index = 1 : length(mev_several)
 
         mev =  mev_several(mev_index) ;
         index_mev = cellfun(@(x) isequal(x, mev), data(:,1));
-        data_to_plot = zeros(1,col_end-col_start);
         double_array = cell2mat(cellfun(@double, data(index_mev,2:end), 'UniformOutput', false));
+        
+        REF = double_array(1,1);
 
-        for i = col_start : col_end - col_start
-            data_to_plot(1,i-col_start+1) =  double_array(1,1) - double_array(1,i);
+        if col_start == 2
+
+            double_array = double_array(:, 2 : col_end - 1);
+        else
+            double_array = double_array(:, col_start : col_end);
         end
+       
+        % Calculate the number of columns in double_array
+        n_cols = size(double_array, 2);  % -1 because we will discard the first column
+        
+        data_to_plot = zeros(1, n_cols);
+        
+        for i = 1 : n_cols 
+            data_to_plot(1, i) = REF - double_array(1, i);
+        end
+        
+        difference_procent = (data_to_plot ./ REF) * 100;
 
-        difference_procent = (data_to_plot./double_array(1,1)) * 100;
 
         if mev <= 160
 
@@ -440,14 +456,14 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
                 data_table = table(datetimes', difference_procent', 'VariableNames', {'Date', 'Data'});
                 threshold = 10;
                 is_above_threshold = data_table(data_table.Data > threshold, :) ;
-                figure(1); % Switch to first figure
+                figure(10); % Switch to first figure
                 h = scatter(is_above_threshold.Date, is_above_threshold.Data, 'filled', 'MarkerFaceColor', colorArray(mev_index, :));
                 legendHandles1(end+1) = h;
                 datetick('x', 'dd-mmm-yyyy')
                 hold on;
             else
                 difference_procent = replaceOutliers(difference_procent) ;
-                figure(1); % Switch to first figure
+                figure(10); % Switch to first figure
                 h = scatter(datetimes, difference_procent, 'filled', 'MarkerFaceColor', colorArray(mev_index, :));
                 legendHandles1(end+1) = h;
                 hold on;
@@ -465,14 +481,14 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
                 data_table = table(datetimes', difference_procent', 'VariableNames', {'Date', 'Data'});
                 threshold = 10;
                 is_above_threshold = data_table(data_table.Data > threshold, :) ;
-                figure(2); % Switch to second figure
+                figure(11); % Switch to second figure
                 h = scatter(is_above_threshold.Date, is_above_threshold.Data, 'filled', 'MarkerFaceColor', colorArray(mev_index, :));
                 legendHandles2(end+1) = h;
                 datetick('x', 'dd-mmm-yyyy')
                 hold on;
             else
                 difference_procent = replaceOutliers(difference_procent) ;
-                figure(2); % Switch to second figure
+                figure(11); % Switch to second figure
                 h = scatter(datetimes, difference_procent, 'filled', 'MarkerFaceColor', colorArray(mev_index, :));
                 legendHandles2(end+1) = h;
                 hold on;
@@ -486,13 +502,13 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
         end
     end
 
-    figure(1); % Switch to first figure
+    figure(10); % Switch to first figure
     if ~isempty(legendHandles1)
         legend(legendHandles1, legendNames1, 'Location', 'best');
     end
     hold off; 
 
-    figure(2); % Switch to second figure
+    figure(11); % Switch to second figure
     if ~isempty(legendHandles2)
         legend(legendHandles2, legendNames2, 'Location', 'best');
     end
