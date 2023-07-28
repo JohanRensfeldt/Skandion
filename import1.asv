@@ -7,7 +7,6 @@ include_outliers = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to plot several energies?', 'Plot several', 'Yes', 'No', 'No');
 plot_several = strcmp(choice, 'Yes');
 
-
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
 if isequal(file,0)
     disp('User selected Cancel')
@@ -164,18 +163,20 @@ function make_boxplot(total_data)
     title('Yearly Averages');
     xlabel('Energy Level (E [MeV])');
     ylabel('Relative deviation from reference (%)');
+    hold off
 
-    figure(2)
+    figure()
     scatter(energy_levels, mean_value,'filled','square')
     xlabel('Energy MeV')
     ylabel('Mean deviation from reference (%)')
+    title('Mean deviation')
     hold off
 
     figure
     scatter(energy_levels, std_data,'filled','o','red')
     ylabel('Standard deviation (%)')
     xlabel('Energy Mev')
-
+    title('Standard deviation %')
 
 end
 

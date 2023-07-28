@@ -7,7 +7,6 @@ include_outliers = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to plot several energies?', 'Plot several', 'Yes', 'No', 'No');
 plot_several = strcmp(choice, 'Yes');
 
-
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
 if isequal(file,0)
     disp('User selected Cancel')
@@ -19,6 +18,7 @@ else
     [indx,tf] = listdlg('ListString', allSheets, 'SelectionMode', 'single');
     if tf == 0
         disp('User selected Cancel')
+        
     else
         disp(['User selected ', allSheets{indx}])
         sheet = allSheets{indx};
