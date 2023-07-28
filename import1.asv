@@ -26,7 +26,7 @@ else
         % Load data from the selected sheet
         number_cols = number_of_columns(path ,sheet);
         if strcmp(sheet, 'GTR1 G315 z0 y')
-            number_cols = number_cols - 2;
+            number_cols = number_cols - 3;
         end
         data = importfile_sigma_comparision2(path, allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format       
     end
@@ -76,7 +76,7 @@ function plot_average_data(averages)
 
     relative_error = 1 - reference ./ averagesRows; 
     
-    relative_error_a = table2array(relative_error);
+    relative_error_a = table2array(relative_error) * 100;
 
     p = polyfit(ener, averagesRows, 2);
     
@@ -251,6 +251,8 @@ function data_as_table = covert_to_data_table(in_data)
     varNames = [in_data(1,1), in_data(2,2:end)];
     
     varNames = matlab.lang.makeUniqueStrings(varNames);
+
+    
     
     % Remove those rows from your cell array
     in_data(1:3,:) = [];
@@ -420,6 +422,8 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
     figure; % Create a figure for energy values greater than 160
     legendHandles2 = gobjects(0);
     legendNames2 = cell(0);
+    
+    col_start = col_start - 1; 
 
     for mev_index = 1 : length(mev_several)
 
@@ -427,24 +431,26 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
         index_mev = cellfun(@(x) isequal(x, mev), data(:,1));
         double_array = cell2mat(cellfun(@double, data(index_mev,2:end), 'UniformOutput', false));
         
-        if col_start == 3
-
-            double_array = double_array(:, col_start)
-        
-        col_start = col_start - 1; 
-        
-        data_to_plot = zeros(1, col_end - col_start);
-        
         REF = double_array(1,1);
+
+        if col_start == 2
+
+            double_array = double_array(:, 2 : col_end - 1);
+        else
+            double_array = double_array(:, col_start : col_end);
+        end
+       
+        % Calculate the number of columns in double_array
+        n_cols = size(double_array, 2);  % -1 because we will discard the first column
         
-        double_array = double_array(: , 2 : end);
+        data_to_plot = zeros(1, n_cols);
         
-        % Adjust the range of the loop to run until col_end - col_start + 1
-        for i = 1 : (col_end - col_start + 1) 
-            data_to_plot(1, i) =  REF - double_array(1, i);
+        for i = 1 : n_cols 
+            data_to_plot(1, i) = REF - double_array(1, i);
         end
         
         difference_procent = (data_to_plot ./ REF) * 100;
+
 
         if mev <= 160
 

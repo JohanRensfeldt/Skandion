@@ -26,7 +26,7 @@ else
         % Load data from the selected sheet
         number_cols = number_of_columns(path ,sheet);
         if strcmp(sheet, 'GTR1 G315 z0 y')
-            number_cols = number_cols - 2;
+            number_cols = number_cols - 0;
         end
         data = importfile_sigma_comparision2(path, allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format       
     end
@@ -34,9 +34,9 @@ end
 
 data = data(9:29,:);
 
-start_date = '10-Jan-2019' ;
+start_date = '22-Oct-2019' ;
 
-end_date = '20-Jun-2023' ;
+end_date = '27-May-2023' ;
 
 % [start_date, end_date] = select_range() ;
 
@@ -76,7 +76,7 @@ function plot_average_data(averages)
 
     relative_error = 1 - reference ./ averagesRows; 
     
-    relative_error_a = table2array(relative_error);
+    relative_error_a = table2array(relative_error) * 100;
 
     p = polyfit(ener, averagesRows, 2);
     
@@ -251,6 +251,8 @@ function data_as_table = covert_to_data_table(in_data)
     varNames = [in_data(1,1), in_data(2,2:end)];
     
     varNames = matlab.lang.makeUniqueStrings(varNames);
+
+    varNames{2} = 'REF';
     
     % Remove those rows from your cell array
     in_data(1:3,:) = [];

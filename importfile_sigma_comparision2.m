@@ -25,6 +25,7 @@ endColumnLetter = numberToExcelColumn(endColumn);  % Convert column number to le
 opts.DataRange = strcat(startColumnLetter, num2str(columns_to_read(1)), ":", endColumnLetter, num2str(numberOfRows));  % Define range
 
 % Import the data
+opts.Sheet = sheetName;
 data = readtable(workbookFile, opts, "UseExcel", false);
 
 %% Convert to output type
