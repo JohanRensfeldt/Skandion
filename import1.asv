@@ -57,6 +57,8 @@ datetimes = convertDates(data, start_col, end_col);
 
 data_Table = covert_to_data_table(data) ;
 
+create_trend_lines(data_Table)
+
 table_averages = yearly_averages(data_Table); 
 
 make_boxplot(data_Table, sheet)
@@ -483,6 +485,7 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
         end
         
         difference_procent = (data_to_plot ./ REF) * 100;
+        diffrences_array(mev_index) = 
 
 
         if mev <= 160
@@ -590,5 +593,52 @@ function data_no_outliers = replaceOutliers(data)
         end
     end
 end
+
+function create_trend_lines(data_table)
+    data = table2array(data_table);
+    n = height(data);
+    p = zeros(n, 2);  % pre-allocating p for a 1st degree polynomial
+    s = cell(n, 1);   % pre-allocating s
+    errors = zeros(n, 1);  % pre-allocating errors
+    R = zeros(n, 1);  % pre-allocating R values
+    goodFit = false(n, 1);  % pre-allocating good fit check
+
+    for energy = 1 : n
+        ener = data(energy, 3:end);
+        xx = linspace(1, length(ener), 48);
+
+        [p(energy, :), s{energy}] = polyfit(xx, ener, 1);   
+        [y, delta] = polyval(p(energy, :), xx, s{energy});  
+        
+        residuals = ener - y;  % residuals
+        SSE = sum(residuals.^2);  % sum of squared residuals
+        RMSE = sqrt(SSE / length(xx));  % root mean squared error
+        
+        errors(energy) = RMSE;
+
+        % Calculate the correlation coefficient R
+        correlationMatrix = corrcoef(xx, ener);
+        R(energy) = correlationMatrix(1,2);  % The correlation coefficient is the off-diagonal element
+        
+        % Compare RMSE with the standard deviation of the energy level
+        stdEner = std(ener);
+        goodFit(energy) = RMSE < stdEner;
+
+        % Create a scatter plot for each energy level
+        figure;
+        plot(xx, ener, 'o', 'MarkerEdgeColor', 'blue'); % observed data
+        hold on;
+        plot(xx, y, 'LineWidth', 2, 'Color', 'red');  % Add the regression line
+        hold off;
+
+        title(sprintf('Energy Level %d: Observed vs Fitted', energy));
+        xlabel('Time');
+        ylabel('Energy');
+        legend('Observed', 'Fitted', 'Location', 'best');
+    end
+end
+
+
+
 
 

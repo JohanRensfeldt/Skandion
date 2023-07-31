@@ -62,10 +62,12 @@ table_averages = yearly_averages(data_Table);
 make_boxplot(data_Table, sheet)
 
 if plot_several
-    plot_several_energies(data,start_col, end_col, mev_several, datetimes, include_outliers, sheet);
+    diffrences_array = plot_several_energies(data,start_col, end_col, mev_several, datetimes, include_outliers, sheet);
 else
     plot_data(data,start_col,end_col, mev, datetimes, include_outliers, sheet)
 end
+
+create_trend_lines(diffrences_array)
 
 plot_average_data(table_averages, sheet)
 
@@ -426,7 +428,7 @@ function [data, path, sheet]= load_data(number_cols)
     end
 end
 
-function plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers, sheet)
+function diffrences_array = plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers, sheet)
     colorArray = [...
     0, 0, 0; % Black
     1, 0, 0; % Red
@@ -457,6 +459,8 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
     col_start = col_start - 1; 
 
     allowed_deviation = 10 ;
+    
+    diffrences_array = zeros(height(data) - 2, length(data) - 2);
 
     for mev_index = 1 : length(mev_several)
 
@@ -483,6 +487,7 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
         end
         
         difference_procent = (data_to_plot ./ REF) * 100;
+        diffrences_array(mev_index, : ) = difference_procent;
 
 
         if mev <= 160
@@ -590,5 +595,56 @@ function data_no_outliers = replaceOutliers(data)
         end
     end
 end
+
+function create_trend_lines(diffrences_array)
+    data = diffrences_array;
+    n = height(data);
+    p = zeros(n, 2);  % pre-allocating p for a 1st degree polynomial
+    s = cell(n, 1);   % pre-allocating s
+    errors = zeros(n, 1);  % pre-allocating errors
+    R = zeros(n, 1);  % pre-allocating R values
+    goodFit = false(n, 1);  % pre-allocating good fit check
+
+    for energy = 1 : n
+        ener = data(energy, 1:end);
+        xx = linspace(1, length(ener), 48);
+
+        [p(energy, :), s{energy}] = polyfit(xx, ener, 1);   
+        [y, delta] = polyval(p(energy, :), xx, s{energy});  
+        
+        residuals = ener - y;  % residuals
+        SSE = sum(residuals.^2);  % sum of squared residuals
+        RMSE = sqrt(SSE / length(xx));  % root mean squared error
+        
+        errors(energy) = RMSE;
+
+        % Calculate the correlation coefficient R
+        correlationMatrix = corrcoef(xx, ener);
+        R(energy) = correlationMatrix(1,2);  % The correlation coefficient is the off-diagonal element
+        
+        % Compare RMSE with the standard deviation of the energy level
+        stdEner = std(ener);
+        goodFit(energy) = RMSE < stdEner;
+
+        % Create a scatter plot for each energy level
+        figure;
+        plot(xx, ener, 'o', 'MarkerEdgeColor', 'blue'); % observed data
+        hold on;
+        plot(xx, y, 'LineWidth', 2, 'Color', 'red');  % Add the regression line
+        hold off;
+
+        title(sprintf('Energy Level %d: Observed vs Fitted', energy));
+        xlabel('Time');
+        ylabel('Relative diviation from reference in percent');
+        legend('Observed', 'Fitted', 'Location', 'best');
+        
+        % Add R, RMSE, and std to the plot
+        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner)};
+        text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
+    end
+end
+
+
+
 
 
