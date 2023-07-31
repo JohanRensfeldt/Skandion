@@ -7,6 +7,8 @@ include_outliers = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to plot several energies?', 'Plot several', 'Yes', 'No', 'No');
 plot_several = strcmp(choice, 'Yes');
 
+
+
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
 if isequal(file,0)
     disp('User selected Cancel')
@@ -25,9 +27,6 @@ else
         path = fullfile(path,file);
         % Load data from the selected sheet
         number_cols = number_of_columns(path ,sheet);
-        if strcmp(sheet, 'GTR1 G315 z0 y')
-            number_cols = number_cols - 3;
-        end
         data = importfile_sigma_comparision2(path, allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format       
     end
 end
@@ -37,6 +36,14 @@ data = data(9:29,:);
 start_date = '10-Jan-2019' ;
 
 end_date = '20-Jun-2023' ;
+
+if strcmp(sheet, 'GTR2 G315 z0 x') || strcmp(sheet, 'GTR2 G315 z0 y')
+
+    start_date = '22-Oct-2019' ;
+
+    end_date = '27-May-2023' ;
+
+end
 
 % [start_date, end_date] = select_range() ;
 
@@ -52,19 +59,19 @@ data_Table = covert_to_data_table(data) ;
 
 table_averages = yearly_averages(data_Table); 
 
-make_boxplot(data_Table)
+make_boxplot(data_Table, sheet)
 
 if plot_several
-    plot_several_energies(data,start_col, end_col, mev_several, datetimes, include_outliers);
+    plot_several_energies(data,start_col, end_col, mev_several, datetimes, include_outliers, sheet);
 else
-    plot_data(data,start_col,end_col, mev, datetimes, include_outliers)
+    plot_data(data,start_col,end_col, mev, datetimes, include_outliers, sheet)
 end
 
-plot_average_data(table_averages)
+plot_average_data(table_averages, sheet)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function plot_average_data(averages)
+function plot_average_data(averages,sheet)
     
     reference = averages(:, 2);
     
@@ -96,10 +103,9 @@ function plot_average_data(averages)
 
     plot(ener, yFit, 'r')
     
+    title(sprintf('Spot size as a function of energy in MeV for %s',sheet))
     xlabel('Energy in Mev');
     ylabel('Spot size');
-    title('Spot size as a function of energy in MeV');
-
     legend('Original Data', 'Fitted curve')
 
     str = sprintf('y = %.6f*x^2 + %.2f*x + %.2f', p(1), p(2), p(3));
@@ -119,7 +125,7 @@ function plot_average_data(averages)
     
     xlabel('Energy in Mev');
     ylabel('Relative deviation from reference in %');
-    title('Relative spot size deviation');
+    title(sprintf('Relative spot size deviation %s', sheet));
 
     legend('Mean of relative deviation from reference in %', 'Fitted curve')
 
@@ -130,7 +136,7 @@ function plot_average_data(averages)
 
 end
 
-function make_boxplot(total_data)
+function make_boxplot(total_data, sheet)
     % Convert the average values in the table to a matrix
     average_values = table2array(total_data(:, 3:end));  % Skipping first two columns
     total_data_array = table2array(total_data);
@@ -161,23 +167,24 @@ function make_boxplot(total_data)
     % Create a boxplot of the average data
     figure()
     boxplot(average, labels);  % Use the labels in the boxplot function
-    title('Yearly Averages');
+    title(sprintf('Yearly Averages for %s', sheet));
     xlabel('Energy Level (E [MeV])');
     ylabel('Relative deviation from reference (%)');
     hold off
-
+    
     figure()
-    scatter(energy_levels, mean_value,'filled','square')
-    xlabel('Energy MeV')
-    ylabel('Mean deviation from reference (%)')
-    title('Mean deviation')
-    hold off
-
-    figure
-    scatter(energy_levels, std_data,'filled','o','red')
-    ylabel('Standard deviation (%)')
+    scatterHandle1 = scatter(energy_levels, mean_value,'filled','square');
+    hold on
+    plot(energy_levels, mean_value,'--k');
+    
+    scatterHandle2 = scatter(energy_levels, std_data,'filled','o','red');
+    plot(energy_levels, std_data, '--r');
+    ylabel('percent deviation from reference')
     xlabel('Energy Mev')
-    title('Standard deviation %')
+    title(sprintf('Standard deviation and mean deviation from reference in percent for %s', sheet))
+    
+    legend([scatterHandle1, scatterHandle2], {'Mean value', 'Standard deviation'}, 'Location','northwest');
+    hold off
 
 end
 
@@ -252,7 +259,7 @@ function data_as_table = covert_to_data_table(in_data)
     
     varNames = matlab.lang.makeUniqueStrings(varNames);
 
-    
+    varNames{2} = 'REF';
     
     % Remove those rows from your cell array
     in_data(1:3,:) = [];
@@ -306,15 +313,21 @@ function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
         scatter(is_above_threshold.Date, is_above_threshold.Data)
         
         datetick('x', 'dd-mmm-yyyy')
+        xlabel('Date')
+        ylabel('Difference from reference in %')
+        title(sprintf('difference in percent for %s', sheet))
     else
         
         figure
-
+        
         scatter(datetimes,difference_procent)
+        xlabel('Date')
+        ylabel('Difference from reference in %')
+        title(sprintf('difference in percent for %s', sheet))
     end
 end
 
-function dates_formated = convertDates(data, start_date, end_date)
+function dates_formated_unique = convertDates(data, start_date, end_date)
     % Lookup table
     monthNames = {'jan', 'feb', 'mars', 'apr', 'maj', 'juni', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec','juli','mars'};
     englishMonthNames = {'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec','Jul','Mar'};
@@ -331,7 +344,27 @@ function dates_formated = convertDates(data, start_date, end_date)
         dates{i} = datetime(dateString, 'InputFormat', 'dd-MMM-yyyy');  
     end
     dates_formated = [dates{:}];
-    dates_formated = unique(dates_formated);
+    dates_formated_unique = unique(dates_formated);
+
+    [C,~,idx] = unique(dates_formated,'stable'); % Get unique values and their indices
+    n = accumarray(idx,1); % Count the occurrences
+    duplicates = C(n>1); % Identify values with counts greater than 1
+
+    if ~isempty(duplicates) || length(dates_formated) ~= length(dates_formated_unique)
+
+        date_str = cellstr(datestr(duplicates)); 
+
+        disp('There are mesurments done on the same date in the data, dates need to be unique. The duplicates are:')
+
+        for i = 1 : length(date_str)
+
+            sprintf('%s', date_str{i})
+
+        end
+    end
+
+
+
 end
 
 
@@ -393,7 +426,7 @@ function [data, path, sheet]= load_data(number_cols)
     end
 end
 
-function plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers)
+function plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers, sheet)
     colorArray = [...
     0, 0, 0; % Black
     1, 0, 0; % Red
@@ -415,15 +448,15 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
     0.6, 0.4, 0.2; % Brown
     ];
 
-    figure; % Create a figure for energy values less than or equal to 160
     legendHandles1 = gobjects(0);
     legendNames1 = cell(0);
 
-    figure; % Create a figure for energy values greater than 160
     legendHandles2 = gobjects(0);
     legendNames2 = cell(0);
     
     col_start = col_start - 1; 
+
+    allowed_deviation = 10 ;
 
     for mev_index = 1 : length(mev_several)
 
@@ -473,7 +506,8 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
                 ylim([-1 7]);
                 xlabel('Month')
                 ylabel('Relative deviation from reference in %')
-                title('Relative deviation from reference in % 60 to 160 MeV')
+                title(sprintf('Relative deviation from reference in percent 60 to 160 MeV for %s', sheet))
+                
             end
             legendNames1{end+1} = ['Energy ', num2str(mev), ' Mev'];
 
@@ -498,19 +532,28 @@ function plot_several_energies(data,col_start, col_end, mev_several, datetimes, 
                 ylim([-10 8]);
                 xlabel('Month')
                 ylabel('Relative deviation from reference in %')
-                title('Relative deviation from reference in % 160 to 226 MeV')
+                title(sprintf('Relative deviation from reference in percent 160 to 226 MeV for %s', sheet))
+                
             end
             legendNames2{end+1} = ['Energy ', num2str(mev), ' Mev'];
         end
     end
 
     figure(10); % Switch to first figure
+    line_1 = yline(allowed_deviation, '--r');
+    line_1.LineWidth = 2;
+    line_2 = yline(-allowed_deviation, '--r');
+    line_2.LineWidth = 2;
     if ~isempty(legendHandles1)
         legend(legendHandles1, legendNames1, 'Location', 'best');
     end
     hold off; 
 
     figure(11); % Switch to second figure
+    line_3 = yline(allowed_deviation, '--r');
+    line_3.LineWidth = 2;
+    line_4 = yline(-allowed_deviation, '--r');
+    line_4.LineWidth = 2;
     if ~isempty(legendHandles2)
         legend(legendHandles2, legendNames2, 'Location', 'best');
     end
