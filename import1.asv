@@ -67,7 +67,7 @@ else
     plot_data(data,start_col,end_col, mev, datetimes, include_outliers, sheet)
 end
 
-create_trend_lines(diffrences_array)
+create_trend_lines(diffrences_array, sheet, mev_several)
 
 plot_average_data(table_averages, sheet)
 
@@ -549,16 +549,22 @@ function diffrences_array = plot_several_energies(data,col_start, col_end, mev_s
     line_1.LineWidth = 2;
     line_2 = yline(-allowed_deviation, '--r');
     line_2.LineWidth = 2;
+    line_3 = yline(0, '--r');
+    line_3.LineWidth = 1;
+
     if ~isempty(legendHandles1)
         legend(legendHandles1, legendNames1, 'Location', 'best');
     end
     hold off; 
 
     figure(11); % Switch to second figure
-    line_3 = yline(allowed_deviation, '--r');
-    line_3.LineWidth = 2;
-    line_4 = yline(-allowed_deviation, '--r');
+    line_4 = yline(allowed_deviation, '--r');
     line_4.LineWidth = 2;
+    line_5 = yline(-allowed_deviation, '--r');
+    line_5.LineWidth = 2;
+    line_6 = yline(0, '--r');
+    line_6.LineWidth = 1;
+
     if ~isempty(legendHandles2)
         legend(legendHandles2, legendNames2, 'Location', 'best');
     end
@@ -596,7 +602,7 @@ function data_no_outliers = replaceOutliers(data)
     end
 end
 
-function create_trend_lines(diffrences_array)
+function create_trend_lines(diffrences_array, sheet, mev_several)
     data = diffrences_array;
     n = height(data) - 1;
     p = zeros(n, 2);  % pre-allocating p for a 1st degree polynomial
@@ -609,21 +615,21 @@ function create_trend_lines(diffrences_array)
     pValue = zeros(1, length(n));
 
     % Energy levels array, modify this as per your data
-    energyLevels = [60:10:220, 226];  
+    energyLevels = mev_several;  
 
     for energy = 1 : n
         ener = data(energy, 1:end);
         xx = 1:length(ener);
-
+    
         [p(energy, :), s{energy}] = polyfit(xx, ener, 1);   
-        [y, delta] = polyval(p(energy, :), xx, s{energy});  
+        [y, ~] = polyval(p(energy, :), xx, s{energy});  
         
         residuals = ener - y;  % residuals
         SSE = sum(residuals.^2);  % sum of squared residuals
         RMSE = sqrt(SSE / length(xx));  % root mean squared error
         
         errors(energy) = RMSE;
-
+    
         % Calculate the correlation coefficient R
         correlationMatrix = corrcoef(xx, ener);
         R(energy) = correlationMatrix(1,2);  % The correlation coefficient is the off-diagonal element
@@ -631,57 +637,60 @@ function create_trend_lines(diffrences_array)
         % Compare RMSE with the standard deviation of the energy level
         stdEner(energy) = std(ener);
         goodFit(energy) = RMSE < stdEner(energy);
-
+    
         % Create a scatter plot for each energy level
         figure;
         plot(xx, ener, 'o', 'MarkerEdgeColor', 'blue'); % observed data
         hold on;
         plot(xx, y, 'LineWidth', 2, 'Color', 'red');  % Add the regression line
         hold off;
-
-        title(sprintf('Energy Level %d: Observed vs Fitted', energyLevels(energy)));
+    
+        title(sprintf('Energy Level %d: Observed vs Fitted for: %s', energyLevels(energy), sheet));
         xlabel('Time');
         ylabel('Relative deviation from reference in percent');
         legend('Observed', 'Fitted', 'Location', 'best');
-        
-        % Add R, RMSE, and std to the plot
-        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner(energy))};
-        text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
         
         % p-value
         mdl = fitlm(xx, ener); % xx is your independent variable and ener is your dependent variable
         pValue(energy) = mdl.Coefficients.pValue(2); % pValue of the slope of the model
         
         significant(energy) = pValue(energy) < 0.05;
+
+        % Add R, RMSE, std, slope, and p-value to the plot
+        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner(energy)), sprintf('Slope: %.2f', p(energy, 1)), sprintf('p-value: %.3f', pValue(energy))};
+        text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
         
-
-
     end
-
-    % Plot RMSE and R as functions of energy level
+    
+        % Plot RMSE and R as functions of energy level
     figure;
-    plot(energyLevels, R, '-o');
-    title('R as a function of Energy Level');
+    plot(energyLevels, R, '-o', 'LineWidth', 1);
+    title(sprintf('R as a function of Energy Level for: %s', sheet));
     xlabel('Energy Level (meV)');
     ylabel('R');
+    yline(0, '--', 'Color', 'r')
+    yline(1, '--', 'Color', 'r')
+    yline(-1, '--', 'Color', 'r')
     hold off
 
     figure;
     plot1 = plot(energyLevels, errors, '-o','LineWidth', 1);  % errors is the RMSE
     hold on 
     plot2 = plot(energyLevels, stdEner, '-*', 'Color', 'r','LineWidth', 1);
-    title('RMSE and Std as a function of Energy Level');
+    title(sprintf('RMSE and Std as a function of Energy Level for: %s', sheet));
     xlabel('Energy Level (meV)');
     ylabel('Value');
     legend([plot1 plot2], {'RMSE', 'Std'}, 'Location','northwest');
     hold off
     
+    figure()
     plot(energyLevels, pValue, '-*', 'LineWidth', 1)
     hold on 
     yline(0.05 , '--', 'Color','r')
     xlabel('Energy level (meV)')
     ylabel('p-value')
-    title('P-value as a function of energy level')
+    title(sprintf('P-value as a function of energy level for: %s', sheet))
+
 end
 
 
