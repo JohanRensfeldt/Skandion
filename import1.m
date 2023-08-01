@@ -598,16 +598,22 @@ end
 
 function create_trend_lines(diffrences_array)
     data = diffrences_array;
-    n = height(data);
+    n = height(data) - 1;
     p = zeros(n, 2);  % pre-allocating p for a 1st degree polynomial
     s = cell(n, 1);   % pre-allocating s
     errors = zeros(n, 1);  % pre-allocating errors
     R = zeros(n, 1);  % pre-allocating R values
     goodFit = false(n, 1);  % pre-allocating good fit check
+    significant= false(n, 1);
+    stdEner = zeros(1, length(n));
+    pValue = zeros(1, length(n));
+
+    % Energy levels array, modify this as per your data
+    energyLevels = [60:10:220, 226];  
 
     for energy = 1 : n
         ener = data(energy, 1:end);
-        xx = linspace(1, length(ener), 48);
+        xx = 1:length(ener);
 
         [p(energy, :), s{energy}] = polyfit(xx, ener, 1);   
         [y, delta] = polyval(p(energy, :), xx, s{energy});  
@@ -623,8 +629,8 @@ function create_trend_lines(diffrences_array)
         R(energy) = correlationMatrix(1,2);  % The correlation coefficient is the off-diagonal element
         
         % Compare RMSE with the standard deviation of the energy level
-        stdEner = std(ener);
-        goodFit(energy) = RMSE < stdEner;
+        stdEner(energy) = std(ener);
+        goodFit(energy) = RMSE < stdEner(energy);
 
         % Create a scatter plot for each energy level
         figure;
@@ -633,16 +639,51 @@ function create_trend_lines(diffrences_array)
         plot(xx, y, 'LineWidth', 2, 'Color', 'red');  % Add the regression line
         hold off;
 
-        title(sprintf('Energy Level %d: Observed vs Fitted', energy));
+        title(sprintf('Energy Level %d: Observed vs Fitted', energyLevels(energy)));
         xlabel('Time');
-        ylabel('Relative diviation from reference in percent');
+        ylabel('Relative deviation from reference in percent');
         legend('Observed', 'Fitted', 'Location', 'best');
         
         % Add R, RMSE, and std to the plot
-        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner)};
+        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner(energy))};
         text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
+        
+        % p-value
+        mdl = fitlm(xx, ener); % xx is your independent variable and ener is your dependent variable
+        pValue(energy) = mdl.Coefficients.pValue(2); % pValue of the slope of the model
+        
+        significant(energy) = pValue(energy) < 0.05;
+        
+
+
     end
+
+    % Plot RMSE and R as functions of energy level
+    figure;
+    plot(energyLevels, R, '-o');
+    title('R as a function of Energy Level');
+    xlabel('Energy Level (meV)');
+    ylabel('R');
+    hold off
+
+    figure;
+    plot1 = plot(energyLevels, errors, '-o','LineWidth', 1);  % errors is the RMSE
+    hold on 
+    plot2 = plot(energyLevels, stdEner, '-*', 'Color', 'r','LineWidth', 1);
+    title('RMSE and Std as a function of Energy Level');
+    xlabel('Energy Level (meV)');
+    ylabel('Value');
+    legend([plot1 plot2], {'RMSE', 'Std'}, 'Location','northwest');
+    hold off
+
+    plot(energyLevels, pValue, '-*', 'LineWidth', 1)
+    hold on 
+    yline(0.05 , '--', 'Color','r')
+    xlabel('Energy level (meV)')
+    ylabel('p-value')
+    title('P-value as a function of energy level')
 end
+
 
 
 
