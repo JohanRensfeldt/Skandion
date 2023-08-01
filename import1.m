@@ -7,6 +7,10 @@ include_outliers = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to plot several energies?', 'Plot several', 'Yes', 'No', 'No');
 plot_several = strcmp(choice, 'Yes');
 
+%% Calling functions and importing data
+% This section determines the number of columns in the data file and
+% then imports the data. Here the user also chooses what dates to look at 
+% and what energies.
 
 
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
@@ -71,7 +75,12 @@ create_trend_lines(diffrences_array, sheet, mev_several)
 
 plot_average_data(table_averages, sheet)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Plotting the averages of the data
+% In this function the script takes in the avrages of the energy levels
+% over the data range. The script then calculates the error relative to the
+% reference value and then fits a second degree plynomial to the data and
+% plots the results.
+
 
 function plot_average_data(averages,sheet)
     
@@ -138,9 +147,13 @@ function plot_average_data(averages,sheet)
 
 end
 
+%% Makes boxplot, yearly averages and the standard deviation of the data.
+% In this function the script creates a boxplot from the average deviation
+% of the data per energy level. The function also creates a plot with the
+% standard deviation and the mean of the relative error.
+
 function make_boxplot(total_data, sheet)
     % Convert the average values in the table to a matrix
-    average_values = table2array(total_data(:, 3:end));  % Skipping first two columns
     total_data_array = table2array(total_data);
 
     average = zeros(height(total_data),width(total_data)-3);
@@ -159,9 +172,6 @@ function make_boxplot(total_data, sheet)
 
     average = (average * 100)' ;
 
-    % Transpose the matrix so that each row corresponds to a different energy level
-    average_values = average_values';
-    
     % Create labels from the energy levels
     energy_levels = total_data.("E [MeV]");
     labels = (cellstr(num2str(energy_levels)))';  % Convert to cell array of character vectors
@@ -190,6 +200,9 @@ function make_boxplot(total_data, sheet)
 
 end
 
+%% Creates Yearly averages
+% This function creates yearly averages from the total data in the selected
+% data range.
 
 
 function average_table = yearly_averages(data_table_total)
@@ -249,9 +262,12 @@ function average_table = yearly_averages(data_table_total)
     string_dates = cellstr(datestr(start_dates, 'dd-mmm-yyyy'));
     average_table.Properties.VariableNames(3:end) = string_dates;
 
-    % Display the average table
-    disp(average_table);
 end
+
+%% Creates data table
+% This function takes in the data as an array and converts it to a data
+% table, the varnames are the dates the data was meassured.
+
 
 function data_as_table = covert_to_data_table(in_data)
     % Assume 'C' is your cell array
@@ -270,6 +286,10 @@ function data_as_table = covert_to_data_table(in_data)
     data_as_table = cell2table(in_data, 'VariableNames', varNames);
 end
 
+%% Finds start and and column
+% This function takes in the data range as a start and end date and
+% converts that to a range given in the a start column and a end column.
+
 
 function [col_start, col_end] = match_date_to_column(data,start_date,end_date)
 
@@ -287,6 +307,10 @@ function [col_start, col_end] = match_date_to_column(data,start_date,end_date)
         sprintf("Date: %s specified is of invalid format", end_date)
     end
 end
+
+%% Plot singular energy level
+% This function plots the data of a singular energy level with and without
+% outlayers.
 
 
 function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
@@ -329,6 +353,14 @@ function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
     end
 end
 
+%% Format dates
+% This function takes in the data, the start date and the end date and then
+% makes sure that the date is in the right format to be matched with the
+% excell data. The function also looks for duplicates in the dates of the
+% data since they need to be uniqe, if it finds a duplicate it returns them
+% for the user to look at.
+
+
 function dates_formated_unique = convertDates(data, start_date, end_date)
     % Lookup table
     monthNames = {'jan', 'feb', 'mars', 'apr', 'maj', 'juni', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec','juli','mars'};
@@ -364,10 +396,12 @@ function dates_formated_unique = convertDates(data, start_date, end_date)
 
         end
     end
-
-
-
 end
+
+%% Number of columns
+% This function finds the number of columns that containes data, this is
+% becouse there are several cells that are surperflous and all we want is
+% the data points.
 
 
 function numNonNanInRow13 = number_of_columns(filename, sheetname)
@@ -392,6 +426,9 @@ function numNonNanInRow13 = number_of_columns(filename, sheetname)
     end
 end
 
+%% Select range
+% This function asks the user for the data range that they want to analyse
+
 
 function [start_date, end_date] = select_range()
     prompt = {'Enter start date (dd-mmm-yyyy):', 'Enter end date (dd-MMM-yyyy):'};
@@ -405,28 +442,9 @@ function [start_date, end_date] = select_range()
     end
 end
 
-
-function [data, path, sheet]= load_data(number_cols)
-    [file, path] = uigetfile('*.xlsx','Select an Excel data file');
-    if isequal(file,0)
-        disp('User selected Cancel')
-    else
-        disp(['User selected ', fullfile(path, file)])
-        % Get all sheet names
-        allSheets = sheetnames(fullfile(path, file));
-        % Let the user select a sheet
-        [indx,tf] = listdlg('ListString', allSheets, 'SelectionMode', 'single');
-        if tf == 0
-            disp('User selected Cancel')
-        else
-            disp(['User selected ', allSheets{indx}])
-            % Load data from the selected sheet
-            data = importfile_sigma_comparision2(fullfile(path, file), allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format
-            path = fullfile(path,file);
-            sheet = allSheets{indx}; 
-        end
-    end
-end
+%% Plot several energy levels
+% This function plots all the data for the given energy levels in two plots
+% one for 60 to 160 mev and one from 160 to 226 mev 
 
 function diffrences_array = plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers, sheet)
     colorArray = [...
@@ -571,7 +589,9 @@ function diffrences_array = plot_several_energies(data,col_start, col_end, mev_s
     hold off;
 end
 
-
+%% Takes out outliers 
+% This function takes out the outliers from the data based on the outlier
+% criterion set in the function
 
 
 function data_no_outliers = replaceOutliers(data)
@@ -601,6 +621,13 @@ function data_no_outliers = replaceOutliers(data)
         end
     end
 end
+
+%% Linear regression and statistical analysis
+% This function fits a line to the data of each energy level, the function
+% then performes statistical analysis looking at the RMSE, R-value and
+% P-value to determine if there is any statisticly significant change in
+% the data.
+
 
 function create_trend_lines(diffrences_array, sheet, mev_several)
     data = diffrences_array;
@@ -662,7 +689,7 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
         
     end
     
-        % Plot RMSE and R as functions of energy level
+    % Plot RMSE and R as functions of energy level
     figure;
     plot(energyLevels, R, '-o', 'LineWidth', 1);
     title(sprintf('R as a function of Energy Level for: %s', sheet));
@@ -692,6 +719,7 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
     title(sprintf('P-value as a function of energy level for: %s', sheet))
 
 end
+
 
 
 
