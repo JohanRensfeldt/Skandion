@@ -10,7 +10,7 @@ plot_several = strcmp(choice, 'Yes');
 
 
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
-if isequal(file,0)
+if isequal(file, 0)
     disp('User selected Cancel')
 else
     disp(['User selected ', fullfile(path, file)])
@@ -24,9 +24,9 @@ else
     else
         disp(['User selected ', allSheets{indx}])
         sheet = allSheets{indx};
-        path = fullfile(path,file);
+        path = fullfile(path, file);
         % Load data from the selected sheet
-        number_cols = number_of_columns(path ,sheet);
+        number_cols = number_of_columns(path, sheet);
         data = importfile_sigma_comparision2(path, allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format       
     end
 end

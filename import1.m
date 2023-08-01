@@ -10,7 +10,7 @@ plot_several = strcmp(choice, 'Yes');
 
 
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
-if isequal(file,0)
+if isequal(file, 0)
     disp('User selected Cancel')
 else
     disp(['User selected ', fullfile(path, file)])
@@ -24,14 +24,14 @@ else
     else
         disp(['User selected ', allSheets{indx}])
         sheet = allSheets{indx};
-        path = fullfile(path,file);
+        path = fullfile(path, file);
         % Load data from the selected sheet
-        number_cols = number_of_columns(path ,sheet);
+        number_cols = number_of_columns(path, sheet);
         data = importfile_sigma_comparision2(path, allSheets{indx}, 52, [1, number_cols], 4);  % Modify this as needed to match your data format       
     end
 end
 
-data = data(9:29,:);
+data = data(9:29, :);
 
 start_date = '10-Jan-2019' ;
 
@@ -657,7 +657,7 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
         significant(energy) = pValue(energy) < 0.05;
 
         % Add R, RMSE, std, slope, and p-value to the plot
-        str = {sprintf('R: %.2f', R(energy)), sprintf('RMSE: %.2f', errors(energy)), sprintf('Std: %.2f', stdEner(energy)), sprintf('Slope: %.2f', p(energy, 1)), sprintf('p-value: %.3f', pValue(energy))};
+        str = {sprintf('R: %.3f', R(energy)), sprintf('RMSE: %.3f', errors(energy)), sprintf('Std: %.3f', stdEner(energy)), sprintf('Slope: %.2f', p(energy, 1)), sprintf('p-value: %.5f', pValue(energy))};
         text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
         
     end
