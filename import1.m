@@ -10,7 +10,7 @@ plot_several = strcmp(choice, 'Yes');
 %% Calling functions and importing data
 % This section determines the number of columns in the data file and
 % then imports the data. Here the user also chooses what dates to look at 
-% and what energies.
+% and what energies. It then calls all of the function of the script.
 
 
 [file, path] = uigetfile('*.xlsx','Select an Excel data file');
