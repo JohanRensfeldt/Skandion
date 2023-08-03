@@ -1,0 +1,2 @@
+data_table = import_data_2('01_Daily cube parameters MatriXX QA_reference from measurements_combined with DailyQA_2023-07-28.xlsx', 'GTR1');
+
