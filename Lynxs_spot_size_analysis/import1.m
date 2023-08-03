@@ -7,6 +7,19 @@ include_outliers = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to plot several energies?', 'Plot several', 'Yes', 'No', 'No');
 plot_several = strcmp(choice, 'Yes');
 
+% Select the directory for saving files 
+directory = uigetdir('', 'Select an output folder:');
+if directory == 0  % User clicked cancel
+    return;
+end
+
+%directory = '/Users/johanrensfeldt/Library/Mobile Documents/com~apple~CloudDocs/Scandion/Lynxs_spot_size_analysis/plots_GTR1_and_GTR2_SpotSize_G315_z0_sigma_comparision_AllResults_NewRefGTR2/plots_GTR1_and_GTR2_SpotSize_G315_z0_sigma_comparision_AllResults_NewRefGTR2_GTR2_G315_z0_x'; % Uncomment this line and insert your path if you want to hard code the directory
+
+% Add a trailing slash if necessary
+if directory(end) ~= filesep
+    directory = [directory filesep];
+end
+
 %% Calling functions and importing data
 % This section determines the number of columns in the data file and
 % then imports the data. Here the user also chooses what dates to look at 
@@ -37,13 +50,13 @@ end
 
 data = data(9:29, :);
 
-start_date = '10-Jan-2019' ;
+start_date = '28-Jun-2018' ;
 
 end_date = '20-Jun-2023' ;
 
 if strcmp(sheet, 'GTR2 G315 z0 x') || strcmp(sheet, 'GTR2 G315 z0 y')
 
-    start_date = '22-Oct-2019' ;
+    start_date = '12-Nov-2018' ;
 
     end_date = '27-May-2023' ;
 
@@ -63,17 +76,17 @@ data_Table = covert_to_data_table(data) ;
 
 table_averages = yearly_averages(data_Table); 
 
-make_boxplot(data_Table, sheet)
+make_boxplot(data_Table, sheet, directory)
 
 if plot_several
-    diffrences_array = plot_several_energies(data,start_col, end_col, mev_several, datetimes, include_outliers, sheet);
+    diffrences_array = plot_several_energies(data, start_col, end_col, mev_several, datetimes, include_outliers, sheet, directory);
 else
-    plot_data(data,start_col,end_col, mev, datetimes, include_outliers, sheet)
+    plot_data(data,start_col,end_col, mev, datetimes, include_outliers, sheet, directory)
 end
 
-create_trend_lines(diffrences_array, sheet, mev_several)
+create_trend_lines(diffrences_array, sheet, mev_several, directory)
 
-plot_average_data(table_averages, sheet)
+plot_average_data(table_averages, sheet, directory)
 
 %% Plotting the averages of the data
 % In this function the script takes in the avrages of the energy levels
@@ -82,7 +95,7 @@ plot_average_data(table_averages, sheet)
 % plots the results.
 
 
-function plot_average_data(averages,sheet)
+function plot_average_data(averages, sheet, directory)
     
     reference = averages(:, 2);
     
@@ -114,7 +127,8 @@ function plot_average_data(averages,sheet)
 
     plot(ener, yFit, 'r')
     
-    title(sprintf('Spot size as a function of energy in MeV for %s',sheet))
+    titleText = sprintf('Spot size as a function of energy in MeV for %s',sheet);
+    title(titleText);
     xlabel('Energy in Mev');
     ylabel('Spot size');
     legend('Original Data', 'Fitted curve')
@@ -123,6 +137,10 @@ function plot_average_data(averages,sheet)
     text(max(ener)/2, min(averagesRows), str, 'FontSize', 14);
 
     hold off
+    
+    % Save the plot
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
 
     %%%%%%%%%%%%%
 
@@ -136,7 +154,8 @@ function plot_average_data(averages,sheet)
     
     xlabel('Energy in Mev');
     ylabel('Relative deviation from reference in %');
-    title(sprintf('Relative spot size deviation %s', sheet));
+    titleText = sprintf('Relative spot size deviation %s', sheet);
+    title(titleText);
 
     legend('Mean of relative deviation from reference in %', 'Fitted curve')
 
@@ -144,15 +163,19 @@ function plot_average_data(averages,sheet)
     text(max(ener)/2, min(relative_error_a), str1, 'FontSize', 14);
 
     hold off
-
+    
+    % Save the plot
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
 end
+
 
 %% Makes boxplot, yearly averages and the standard deviation of the data.
 % In this function the script creates a boxplot from the average deviation
 % of the data per energy level. The function also creates a plot with the
 % standard deviation and the mean of the relative error.
 
-function make_boxplot(total_data, sheet)
+function make_boxplot(total_data, sheet, directory)
     % Convert the average values in the table to a matrix
     total_data_array = table2array(total_data);
 
@@ -179,10 +202,15 @@ function make_boxplot(total_data, sheet)
     % Create a boxplot of the average data
     figure()
     boxplot(average, labels);  % Use the labels in the boxplot function
-    title(sprintf('Yearly Averages for %s', sheet));
+    titleText = sprintf('Yearly Averages for %s', sheet);
+    title(titleText);
     xlabel('Energy Level (E [MeV])');
     ylabel('Relative deviation from reference (%)');
     hold off
+    
+    % Save the plot
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
     
     figure()
     scatterHandle1 = scatter(energy_levels, mean_value,'filled','square');
@@ -193,12 +221,18 @@ function make_boxplot(total_data, sheet)
     plot(energy_levels, std_data, '--r');
     ylabel('percent deviation from reference')
     xlabel('Energy Mev')
-    title(sprintf('Standard deviation and mean deviation from reference in percent for %s', sheet))
+    titleText = sprintf('Standard deviation and mean deviation from reference in percent for %s', sheet);
+    title(titleText);
     
     legend([scatterHandle1, scatterHandle2], {'Mean value', 'Standard deviation'}, 'Location','northwest');
     hold off
 
+    % Save the plot
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
+
 end
+
 
 %% Creates Yearly averages
 % This function creates yearly averages from the total data in the selected
@@ -261,7 +295,11 @@ function average_table = yearly_averages(data_table_total)
     % Converting dates to string format to use as table variable names
     string_dates = cellstr(datestr(start_dates, 'dd-mmm-yyyy'));
     average_table.Properties.VariableNames(3:end) = string_dates;
+    
+    nanColumns = any(isnan(average_table{:,:}), 1);  % Find columns with NaN
 
+    % Remove the columns with NaN values
+    average_table(:,nanColumns) = [];
 end
 
 %% Creates data table
@@ -313,7 +351,7 @@ end
 % outlayers.
 
 
-function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
+function plot_data(data, col_start, col_end, mev, datetimes, include_outliers, directory)
 
     index_mev = cellfun(@(x) isequal(x, mev), data);
     
@@ -341,7 +379,8 @@ function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
         datetick('x', 'dd-mmm-yyyy')
         xlabel('Date')
         ylabel('Difference from reference in %')
-        title(sprintf('difference in percent for %s', sheet))
+        titleText = sprintf('Difference in percent for %s', sheet);
+        title(titleText);
     else
         
         figure
@@ -349,9 +388,16 @@ function plot_data(data,col_start, col_end, mev, datetimes, include_outliers)
         scatter(datetimes,difference_procent)
         xlabel('Date')
         ylabel('Difference from reference in %')
-        title(sprintf('difference in percent for %s', sheet))
+        titleText = sprintf('Difference in percent for %s', sheet);
+        title(titleText);
     end
+
+    % Save the plot
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
+
 end
+
 
 %% Format dates
 % This function takes in the data, the start date and the end date and then
@@ -446,7 +492,7 @@ end
 % This function plots all the data for the given energy levels in two plots
 % one for 60 to 160 mev and one from 160 to 226 mev 
 
-function diffrences_array = plot_several_energies(data,col_start, col_end, mev_several, datetimes, include_outliers, sheet)
+function diffrences_array = plot_several_energies(data, col_start, col_end, mev_several, datetimes, include_outliers, sheet, directory)
     colorArray = [...
     0, 0, 0; % Black
     1, 0, 0; % Red
@@ -546,7 +592,7 @@ function diffrences_array = plot_several_energies(data,col_start, col_end, mev_s
                 datetick('x', 'dd-mmm-yyyy')
                 hold on;
             else
-                difference_procent = replaceOutliers(difference_procent) ;
+                difference_pocent = replaceOutliers(difference_procent) ;
                 figure(11); % Switch to second figure
                 h = scatter(datetimes, difference_procent, 'filled', 'MarkerFaceColor', colorArray(mev_index, :));
                 legendHandles2(end+1) = h;
@@ -573,6 +619,11 @@ function diffrences_array = plot_several_energies(data,col_start, col_end, mev_s
     if ~isempty(legendHandles1)
         legend(legendHandles1, legendNames1, 'Location', 'best');
     end
+    % Save the first figure
+    titleText = sprintf('Relative deviation from reference in percent 60 to 160 MeV for %s', sheet);
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
+
     hold off; 
 
     figure(11); % Switch to second figure
@@ -587,6 +638,10 @@ function diffrences_array = plot_several_energies(data,col_start, col_end, mev_s
         legend(legendHandles2, legendNames2, 'Location', 'best');
     end
     hold off;
+    % Save the second figure
+    titleText = sprintf('Relative deviation from reference in percent 160 to 226 MeV for %s', sheet);
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
 end
 
 %% Takes out outliers 
@@ -629,7 +684,7 @@ end
 % the data.
 
 
-function create_trend_lines(diffrences_array, sheet, mev_several)
+function create_trend_lines(diffrences_array, sheet, mev_several, directory)
     data = diffrences_array;
     n = height(data) - 1;
     p = zeros(n, 2);  % pre-allocating p for a 1st degree polynomial
@@ -686,6 +741,11 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
         % Add R, RMSE, std, slope, and p-value to the plot
         str = {sprintf('R: %.3f', R(energy)), sprintf('RMSE: %.3f', errors(energy)), sprintf('Std: %.3f', stdEner(energy)), sprintf('Slope: %.2f', p(energy, 1)), sprintf('p-value: %.5f', pValue(energy))};
         text(max(xx)*0.1, max(ener)*0.9, str, 'BackgroundColor', 'white');  % adjust position as necessary
+
+        % Save each scatter plot
+        titleText = sprintf('Energy Level %d: Observed vs Fitted for: %s', energyLevels(energy), sheet);
+        validFileName = strrep(titleText, ' ', '_');
+        print([directory validFileName], '-dpng');
         
     end
     
@@ -700,6 +760,11 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
     yline(-1, '--', 'Color', 'r')
     hold off
 
+    % Save the plot of R as a function of energy level
+    titleText = sprintf('R as a function of Energy Level for: %s', sheet);
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
+
     figure;
     plot1 = plot(energyLevels, errors, '-o','LineWidth', 1);  % errors is the RMSE
     hold on 
@@ -709,6 +774,11 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
     ylabel('Value');
     legend([plot1 plot2], {'RMSE', 'Std'}, 'Location','northwest');
     hold off
+
+    % Save the plot of RMSE and Std as a function of energy level
+    titleText = sprintf('RMSE and Std as a function of Energy Level for: %s', sheet);
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
     
     figure()
     plot(energyLevels, pValue, '-*', 'LineWidth', 1)
@@ -717,7 +787,12 @@ function create_trend_lines(diffrences_array, sheet, mev_several)
     xlabel('Energy level (meV)')
     ylabel('p-value')
     title(sprintf('P-value as a function of energy level for: %s', sheet))
+    hold off 
 
+    % Save the plot of p-value as a function of energy level
+    titleText = sprintf('P-value as a function of energy level for: %s', sheet);
+    validFileName = strrep(titleText, ' ', '_');
+    print([directory validFileName], '-dpng');
 end
 
 
