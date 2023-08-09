@@ -10,6 +10,8 @@ plot_several = strcmp(choice, 'Yes');
 choice = questdlg('Would you like to save the figures ?', 'Save figures ?', 'Yes', 'No', 'No');
 save_figures = strcmp(choice, 'Yes');
 
+directory = '' ; 
+
 if save_figures
     % Select the directory for saving files 
     directory = uigetdir('', 'Select an output folder:');
