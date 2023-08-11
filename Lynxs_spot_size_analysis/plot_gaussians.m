@@ -5,7 +5,7 @@ gaussian = @(x, mu, sigma) 0.7 * exp(-0.5 * ((x - mu) / sigma).^2); % 0.7 amplit
 x = -10:0.01:10; % Span to accommodate 15 gaussians.
 
 % 3. Define means, standard deviation
-numGaussians = 15;
+numGaussians = 20;
 spacing = 0.5; % Spacing between means
 startPoint = -spacing * (numGaussians-1)/2; % To center the Gaussians around 0.
 mus = startPoint:spacing:(startPoint + spacing*(numGaussians-1));
@@ -56,7 +56,7 @@ plot(x, sumGaussians_original, 'LineWidth', 2, 'Color', 'blue');
 doseError = max(sumGaussians_displaced) - max(sumGaussians_original);
 
 % Displaying the information on the plot
-infoString = sprintf('Dose Error: %0.2f%%\nSpot Size (sigma): %0.2f cm\nX Displacement: +/- 1.5 mm', doseError*100, sigma);
+infoString = sprintf('Dose Error: %0.2f%%\nSpot Size (sigma): %0.2f cm\nX Displacement: +1.5 mm', doseError*100, sigma);
 textPos = [min(x) + 0.2, 0.9];
 text(textPos(1), textPos(2), infoString, 'FontSize', 10, 'BackgroundColor', 'white');
 
