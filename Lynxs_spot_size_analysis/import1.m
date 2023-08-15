@@ -173,10 +173,10 @@ function plot_average_data(averages, sheet, directory, save_figure)
     hold off
     
     % Save the plot
-    if save_figure
-        validFileName = strrep(titleText, ' ', '_');
-        print([directory validFileName], '-dpng');
-    end
+    % if save_figure
+    %     validFileName = strrep(titleText, ' ', '_');
+    %     print([directory validFileName], '-dpng');
+    % end
 end
 
 

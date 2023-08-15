@@ -1,11 +1,5 @@
-sigma_ = [0.3 0.4 0.5 0.6 0.7 0.8];
-
-save_figures = true;
-
-directory = '/Users/johanrensfeldt/Library/Mobile Documents/com~apple~CloudDocs/Scandion/Lynxs_spot_size_analysis/plots/'; % Uncomment this line and insert your path if you want to hard code the directory
-
-for n = 1 : length(sigma_)
-    sigma = sigma_(n);
+sigma = [0.3 0.4 0.5 0.6 0.7 0.8];
+for i = 1 
     % 1. Define the Gaussian function
     gaussian = @(x, mu, sigma) 0.7 * exp(-0.5 * ((x - mu) / sigma).^2); % 0.7 amplitude to make the peak 70%
     
@@ -23,7 +17,7 @@ for n = 1 : length(sigma_)
     mus(7) = mus(7) - 0.15; % -1.5 mm 
     %mus(9) = mus(9) + 0.15; % +1.5 mm
     
-    %sigma = 0.3; % 3 mm
+    sigma = 0.3; % 3 mm
     
     % Compute the Gaussians and their sum for the displaced Gaussians
     allGaussians_displaced = zeros(length(mus), length(x));
@@ -70,12 +64,6 @@ for n = 1 : length(sigma_)
     
     xlabel('Position (cm)');
     ylabel('Relative Dose %');
-    titleText = sprintf('Comparison of Sum of Gaussians with and without Displacements for sigma: %0.1f cm', sigma);
-    title(titleText);
+    title('Comparison of Sum of Gaussians with and without Displacements');
     hold off;
-    
-    if save_figures
-        validFileName = strrep(titleText, ' ', '_');
-        print([directory validFileName], '-dpng');
     end
-end
